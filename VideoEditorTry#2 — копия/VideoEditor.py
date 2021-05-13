@@ -1,12 +1,31 @@
 import sys
 from PyQt5.QtGui import QPalette, QColor, QPixmap
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtWidgets import QApplication, QLabel, QMainWindow, QToolBar, QAction, QStatusBar, QCheckBox, QComboBox, \
     QLineEdit, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QStackedLayout, QPushButton, QTabWidget, QDialog, \
-    QDialogButtonBox, QMessageBox, QFileDialog, QTextEdit, QFrame
+    QDialogButtonBox, QMessageBox, QFileDialog, QTextEdit, QFrame, QStyle, QSizePolicy, QSlider, \
+    QListWidget, QListWidgetItem
 from PyQt5.QtCore import Qt, QSize, QDir
+from PyQt5.QtMultimediaWidgets import QVideoWidget
 from moviepy.editor import VideoFileClip
 
 from TimeLine import QTimeLine
+from VideoItself import VideoWindow
+
+
+class ListBoxWidget(QListWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def dropEvent(self, event):
+        if event.mimeData().hasText():
+            event.setDropAction(Qt.CopyAction)
+            event.accept()
+            links = []
+            links.append(event.mimeData().text())
+            self.addItems(links)
+        else:
+            event.ignore()
 
 
 class MainWidget(QWidget):
@@ -16,19 +35,18 @@ class MainWidget(QWidget):
         main_layout = QVBoxLayout()
         layout = QHBoxLayout()
         layout1 = QVBoxLayout()
-        layout2 = QGridLayout()
+        layout2 = QVBoxLayout()
 
-        for i in range(5):
-            for j in range(6):
-                emp = QLabel()
-                emp.setStyleSheet("background-color:gray")
-                layout2.addWidget(emp, j, i)
+        self.listbox_view = ListBoxWidget(self)
+        self.buttl2 = QPushButton('Get Value', self)
+        self.buttl2.setGeometry(850, 400, 200, 50)
+        self.buttl2.clicked.connect(lambda: self.playSelectedItem())
+        layout2.addWidget(self.listbox_view)
+        layout2.addWidget(self.buttl2)
 
-        butt = QPushButton('Import Video')
-        min_line = 0
-        min_col = 0
-        butt.clicked.connect(lambda: self.import_vid(layout2,  min_line, min_col))
-        layout1.addWidget(butt)
+        self.butt = QPushButton('Import Video')
+        self.butt.clicked.connect(lambda: self.import_vid())
+        layout1.addWidget(self.butt)
         layout1.addWidget(QPushButton('Add Photo/Video'))
         layout1.addWidget(QPushButton('Cut'))
         layout1.addWidget(QPushButton('Rotate'))
@@ -42,6 +60,8 @@ class MainWidget(QWidget):
 
         layout.addLayout(layout2, 8)
         layout3 = QVBoxLayout()
+        self.VideoPlay = VideoWindow()
+        layout3.addWidget(self.VideoPlay)
         layout.addLayout(layout3, 8)
         main_layout.addLayout(layout, 2)
         lay = QHBoxLayout()
@@ -49,14 +69,17 @@ class MainWidget(QWidget):
         main_layout.addLayout(lay, 1)
         self.setLayout(main_layout)
 
-    def import_vid(self, layout, min_line, min_col):
+    def import_vid(self):
         file_name, _ = QFileDialog.getOpenFileName(self, 'Open Video File', "Video files (*.avi *.mp4 *.flv)")
-        clip = VideoFileClip(file_name)
-        frame = clip.get_frame(10)
-        layout.addWidget(frame, min_line, min_col)
-        if min_col == 4:
-            min_line += 1
-            min_col = 0
+
+        if file_name != '':
+            self.listbox_view.addItem(file_name)
+
+
+    def playSelectedItem(self):
+        item = QListWidgetItem(self.listbox_view.currentItem())
+        self.VideoPlay.openFile(item.text())
+        #return item.text()
 
 
 class MainWindow(QMainWindow):
@@ -68,7 +91,6 @@ class MainWindow(QMainWindow):
         w = 700
         h = 500
         self.resize(w, h)
-        #self.setStyleSheet("background-color: #ffffff;")
 
         main_widget = MainWidget()
 
